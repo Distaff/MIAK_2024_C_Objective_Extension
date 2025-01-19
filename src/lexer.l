@@ -1,10 +1,3 @@
-%e  1019
-%p  2807
-%n  371
-%k  284
-%a  1213
-%o  1117
-
 O   [0-7]
 D   [0-9]
 NZ  [1-9]
@@ -19,137 +12,146 @@ IS  (((u|U)(l|L|ll|LL)?)|((l|L|ll|LL)(u|U)?))
 CP  (u|U|L)
 SP  (u8|u|U|L)
 ES  (\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+))
-WS  [ \t\v\n\f]
+WS  [ \t\n\r\f\v]
 
 %{
+#define YYERROR_VERBOSE 1
+
 #include <stdio.h>
+#include <string.h>
 #include "y.tab.h"
 
-extern void yyerror(const char *);  /* prints grammar violation message */
-
-extern int sym_type(const char *);  /* returns type from symbol table */
-
-#define sym_type(identifier) IDENTIFIER /* with no symbol table, fake it */
+int yylex(void);
+extern char *yytext;
+extern void yyerror(const char *s);
+extern int sym_type(const char *);
 
 static void comment(void);
 static int check_type(void);
+
+extern void reprintToken(const char *value, int token);
+extern void setSpecialState(int token);
 %}
 
+%option yylineno
+
 %%
-"/*"                                    { comment(); }
-"//".*                                    { /* consume //-comment */ }
+"/*"                    { comment(); }
+"//".*                  { /* consume //-comment */ }
+"#"(.*)                 { reprintToken(yytext, 0); /* pass #-line */ }
 
-"auto"					{ return(AUTO); }
-"break"					{ return(BREAK); }
-"case"					{ return(CASE); }
-"char"					{ return(CHAR); }
-"const"					{ return(CONST); }
-"continue"				{ return(CONTINUE); }
-"default"				{ return(DEFAULT); }
-"do"					{ return(DO); }
-"double"				{ return(DOUBLE); }
-"else"					{ return(ELSE); }
-"enum"					{ return(ENUM); }
-"extern"				{ return(EXTERN); }
-"float"					{ return(FLOAT); }
-"for"					{ return(FOR); }
-"goto"					{ return(GOTO); }
-"if"					{ return(IF); }
-"inline"				{ return(INLINE); }
-"int"					{ return(INT); }
-"long"					{ return(LONG); }
-"register"				{ return(REGISTER); }
-"restrict"				{ return(RESTRICT); }
-"return"				{ return(RETURN); }
-"short"					{ return(SHORT); }
-"signed"				{ return(SIGNED); }
-"sizeof"				{ return(SIZEOF); }
-"static"				{ return(STATIC); }
-"struct"				{ return(STRUCT); }
-"switch"				{ return(SWITCH); }
-"typedef"				{ return(TYPEDEF); }
-"union"					{ return(UNION); }
-"unsigned"				{ return(UNSIGNED); }
-"void"					{ return(VOID); }
-"volatile"				{ return(VOLATILE); }
-"while"					{ return(WHILE); }
-"_Alignas"                              { return ALIGNAS; }
-"_Alignof"                              { return ALIGNOF; }
-"_Atomic"                               { return ATOMIC; }
-"_Bool"                                 { return BOOL; }
-"_Complex"                              { return COMPLEX; }
-"_Generic"                              { return GENERIC; }
-"_Imaginary"                            { return IMAGINARY; }
-"_Noreturn"                             { return NORETURN; }
-"_Static_assert"                        { return STATIC_ASSERT; }
-"_Thread_local"                         { return THREAD_LOCAL; }
-"__func__"                              { return FUNC_NAME; }
+"auto"					{ reprintToken("auto", AUTO); return(AUTO); }
+"break"					{ reprintToken("break", BREAK); return(BREAK); }
+"case"					{ reprintToken("case", CASE); return(CASE); }
+"char"					{ reprintToken("char", CHAR); return(CHAR); }
+"const"					{ reprintToken("const", CONST); return(CONST); }
+"continue"				{ reprintToken("continue", CONTINUE); return(CONTINUE); }
+"default"				{ reprintToken("default", DEFAULT); return(DEFAULT); }
+"do"					{ reprintToken("do", DO); return(DO); }
+"double"				{ reprintToken("double", DOUBLE); return(DOUBLE); }
+"else"					{ reprintToken("else", ELSE); return(ELSE); }
+"enum"					{ reprintToken("enum", ENUM); return(ENUM); }
+"extern"				{ reprintToken("extern", EXTERN); return(EXTERN); }
+"float"					{ reprintToken("float", FLOAT); return(FLOAT); }
+"for"					{ reprintToken("for", FOR); return(FOR); }
+"goto"					{ reprintToken("goto", GOTO); return(GOTO); }
+"if"					{ reprintToken("if", IF); return(IF); }
+"inline"				{ reprintToken("inline", INLINE); return(INLINE); }
+"int"					{ reprintToken("int", INT); return(INT); }
+"long"					{ reprintToken("long", LONG); return(LONG); }
+"register"				{ reprintToken("register", REGISTER); return(REGISTER); }
+"restrict"				{ reprintToken("restrict", RESTRICT); return(RESTRICT); }
+"return"				{ reprintToken("return", RETURN); return(RETURN); }
+"short"					{ reprintToken("short", SHORT); return(SHORT); }
+"signed"				{ reprintToken("signed", SIGNED); return(SIGNED); }
+"sizeof"				{ reprintToken("sizeof", SIZEOF); return(SIZEOF); }
+"static"				{ reprintToken("static", STATIC); return(STATIC); }
+"struct"				{ reprintToken("struct", STRUCT); return(STRUCT); }
+"switch"				{ reprintToken("switch", SWITCH); return(SWITCH); }
+"typedef"				{ reprintToken("typedef", TYPEDEF); return(TYPEDEF); }
+"union"					{ reprintToken("union", UNION); return(UNION); }
+"unsigned"				{ reprintToken("unsigned", UNSIGNED); return(UNSIGNED); }
+"void"					{ reprintToken("void", VOID); return(VOID); }
+"volatile"				{ reprintToken("volatile", VOLATILE); return(VOLATILE); }
+"while"					{ reprintToken("while", WHILE); return(WHILE); }
+"_Bool"                 { reprintToken("_Bool", BOOL); return BOOL; }
+"_Complex"              { reprintToken("_Complex", COMPLEX); return COMPLEX; }
+"_Imaginary"            { reprintToken("_Imaginary", IMAGINARY); return IMAGINARY; }
+"_Thread_local"         { reprintToken("_Thread_local", THREAD_LOCAL); return THREAD_LOCAL; }
+"__func__"              { reprintToken("__func__", FUNC_NAME); return FUNC_NAME; }
+"@classdef"             { reprintToken("", CLASSDEF); setSpecialState(CLASSDEF); return CLASSDEF; }
+"@data"                 { reprintToken("", CLASSDEF_DATA); setSpecialState(CLASSDEF_DATA); return CLASSDEF_DATA; }
+"@mdef"                 { reprintToken("", CLASSDEF_MDEF); setSpecialState(CLASSDEF_MDEF); return CLASSDEF_MDEF; }
+"@cldecl"               { reprintToken("", CLDECL); setSpecialState(CLDECL); return CLDECL; }
+"@clexec"               { reprintToken("", CLEXEC); setSpecialState(CLEXEC); return CLEXEC; }
+"@claccess"             { reprintToken("", CLACCESS); setSpecialState(CLACCESS); return CLACCESS; }
+"@cltype"               { reprintToken("", CLTYPE); setSpecialState(CLTYPE); return CLTYPE; }
 
-{L}{A}*					{ return check_type(); }
+{L}{A}*					            { int type = check_type(); reprintToken(yytext, type); strcpy(yylval.sval, yytext); return type; }
 
-{HP}{H}+{IS}?				{ return I_CONSTANT; }
-{NZ}{D}*{IS}?				{ return I_CONSTANT; }
-"0"{O}*{IS}?				{ return I_CONSTANT; }
-{CP}?"'"([^'\\\n]|{ES})+"'"		{ return I_CONSTANT; }
+{HP}{H}+{IS}?				        { reprintToken(yytext, I_CONSTANT); return I_CONSTANT; }
+{NZ}{D}*{IS}?				        { reprintToken(yytext, I_CONSTANT); return I_CONSTANT; }
+"0"{O}*{IS}?				        { reprintToken(yytext, I_CONSTANT); return I_CONSTANT; }
+{CP}?"'"([^'\\\n]|{ES})+"'"		    { reprintToken(yytext, I_CONSTANT); return I_CONSTANT; }
 
-{D}+{E}{FS}?				{ return F_CONSTANT; }
-{D}*"."{D}+{E}?{FS}?			{ return F_CONSTANT; }
-{D}+"."{E}?{FS}?			{ return F_CONSTANT; }
-{HP}{H}+{P}{FS}?			{ return F_CONSTANT; }
-{HP}{H}*"."{H}+{P}{FS}?			{ return F_CONSTANT; }
-{HP}{H}+"."{P}{FS}?			{ return F_CONSTANT; }
+{D}+{E}{FS}?				        { reprintToken(yytext, F_CONSTANT); return F_CONSTANT; }
+{D}*"."{D}+{E}?{FS}?			    { reprintToken(yytext, F_CONSTANT); return F_CONSTANT; }
+{D}+"."{E}?{FS}?			        { reprintToken(yytext, F_CONSTANT); return F_CONSTANT; }
+{HP}{H}+{P}{FS}?			        { reprintToken(yytext, F_CONSTANT); return F_CONSTANT; }
+{HP}{H}*"."{H}+{P}{FS}?			    { reprintToken(yytext, F_CONSTANT); return F_CONSTANT; }
+{HP}{H}+"."{P}{FS}?			        { reprintToken(yytext, F_CONSTANT); return F_CONSTANT; }
 
-({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+	{ return STRING_LITERAL; }
+({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+	{ reprintToken(yytext, STRING_LITERAL); return STRING_LITERAL; }
 
-"..."					{ return ELLIPSIS; }
-">>="					{ return RIGHT_ASSIGN; }
-"<<="					{ return LEFT_ASSIGN; }
-"+="					{ return ADD_ASSIGN; }
-"-="					{ return SUB_ASSIGN; }
-"*="					{ return MUL_ASSIGN; }
-"/="					{ return DIV_ASSIGN; }
-"%="					{ return MOD_ASSIGN; }
-"&="					{ return AND_ASSIGN; }
-"^="					{ return XOR_ASSIGN; }
-"|="					{ return OR_ASSIGN; }
-">>"					{ return RIGHT_OP; }
-"<<"					{ return LEFT_OP; }
-"++"					{ return INC_OP; }
-"--"					{ return DEC_OP; }
-"->"					{ return PTR_OP; }
-"&&"					{ return AND_OP; }
-"||"					{ return OR_OP; }
-"<="					{ return LE_OP; }
-">="					{ return GE_OP; }
-"=="					{ return EQ_OP; }
-"!="					{ return NE_OP; }
-";"					{ return ';'; }
-("{"|"<%")				{ return '{'; }
-("}"|"%>")				{ return '}'; }
-","					{ return ','; }
-":"					{ return ':'; }
-"="					{ return '='; }
-"("					{ return '('; }
-")"					{ return ')'; }
-("["|"<:")				{ return '['; }
-("]"|":>")				{ return ']'; }
-"."					{ return '.'; }
-"&"					{ return '&'; }
-"!"					{ return '!'; }
-"~"					{ return '~'; }
-"-"					{ return '-'; }
-"+"					{ return '+'; }
-"*"					{ return '*'; }
-"/"					{ return '/'; }
-"%"					{ return '%'; }
-"<"					{ return '<'; }
-">"					{ return '>'; }
-"^"					{ return '^'; }
-"|"					{ return '|'; }
-"?"					{ return '?'; }
+"..."					{ reprintToken("...", ELLIPSIS) ; return ELLIPSIS; }
+">>="					{ reprintToken(">>=", RIGHT_ASSIGN) ; return RIGHT_ASSIGN; }
+"<<="					{ reprintToken("<<=", LEFT_ASSIGN) ; return LEFT_ASSIGN; }
+"+="					{ reprintToken("+=", ADD_ASSIGN) ; return ADD_ASSIGN; }
+"-="					{ reprintToken("-=", SUB_ASSIGN) ; return SUB_ASSIGN; }
+"*="					{ reprintToken("*=", MUL_ASSIGN) ; return MUL_ASSIGN; }
+"/="					{ reprintToken("/=", DIV_ASSIGN) ; return DIV_ASSIGN; }
+"%="					{ reprintToken("%=", MOD_ASSIGN) ; return MOD_ASSIGN; }
+"&="					{ reprintToken("&=", AND_ASSIGN) ; return AND_ASSIGN; }
+"^="					{ reprintToken("^=", XOR_ASSIGN) ; return XOR_ASSIGN; }
+"|="					{ reprintToken("|=", OR_ASSIGN) ; return OR_ASSIGN; }
+">>"					{ reprintToken(">>", RIGHT_OP) ; return RIGHT_OP; }
+"<<"					{ reprintToken("<<", LEFT_OP) ; return LEFT_OP; }
+"++"					{ reprintToken("++", INC_OP) ; return INC_OP; }
+"--"					{ reprintToken("--", DEC_OP) ; return DEC_OP; }
+"->"					{ reprintToken("->", PTR_OP) ; return PTR_OP; }
+"&&"					{ reprintToken("&&", AND_OP) ; return AND_OP; }
+"||"					{ reprintToken("||", OR_OP) ; return OR_OP; }
+"<="					{ reprintToken("<=", LE_OP) ; return LE_OP; }
+">="					{ reprintToken(">=", GE_OP) ; return GE_OP; }
+"=="					{ reprintToken("==", EQ_OP) ; return EQ_OP; }
+"!="					{ reprintToken("!=", NE_OP) ; return NE_OP; }
+";"					    { reprintToken(";", ';') ; return ';'; }
+("{"|"<%")				{ reprintToken("{",'{') ; return '{'; }
+("}"|"%>")				{ reprintToken("}",'}') ; return '}'; }
+","					    { reprintToken(",",',') ; return ','; }
+":"					    { reprintToken(":",':') ; return ':'; }
+"="					    { reprintToken("=",'=') ; return '='; }
+"("					    { reprintToken("(",'(') ; return '('; }
+")"					    { reprintToken(")",')') ; return ')'; }
+("["|"<:")				{ reprintToken("[",'[') ; return '['; }
+("]"|":>")				{ reprintToken("]",']') ; return ']'; }
+"."					    { reprintToken(".",'.') ; return '.'; }
+"&"					    { reprintToken("&",'&') ; return '&'; }
+"!"					    { reprintToken("!",'!') ; return '!'; }
+"~"					    { reprintToken("~",'~') ; return '~'; }
+"-"					    { reprintToken("-",'-') ; return '-'; }
+"+"					    { reprintToken("+",'+') ; return '+'; }
+"*"					    { reprintToken("*",'*') ; return '*'; }
+"/"					    { reprintToken("/",'/') ; return '/'; }
+"%"					    { reprintToken("%",'%') ; return '%'; }
+"<"					    { reprintToken("<",'<') ; return '<'; }
+">"					    { reprintToken(">",'>') ; return '>'; }
+"^"					    { reprintToken("^",'^') ; return '^'; }
+"|"					    { reprintToken("|",'|') ; return '|'; }
+"?"					    { reprintToken("?",'?') ; return '?'; }
 
-{WS}+					{ /* whitespace separates tokens */ }
-.					{ /* discard bad characters */ }
+{WS}+					{ reprintToken(yytext, 0); }
+.					    { yyerror("Bad character!"); /* discard bad characters */ }
 
 %%
 
@@ -179,6 +181,8 @@ static void comment(void)
 
 static int check_type(void)
 {
+    #define sym_type(identifier) IDENTIFIER /* we are faking symbol table as we don't have it */
+
     switch (sym_type(yytext))
     {
     case TYPEDEF_NAME:                /* previously defined */
@@ -188,17 +192,4 @@ static int check_type(void)
     default:                          /* includes undefined */
         return IDENTIFIER;
     }
-}
-
-
-int main() {
-	printf ("Hello world");
-	
-	int ntoken;
-	
-	ntoken = yyparse();
-	while(ntoken) {
-		printf("%d\n", ntoken);
-		ntoken = yylex();
-	}
 }

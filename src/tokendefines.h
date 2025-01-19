@@ -1,74 +1,87 @@
+#pragma once
 
-#define IDENTIFIER 258
-#define I_CONSTANT 259
-#define F_CONSTANT 260
-#define STRING_LITERAL 261
-#define FUNC_NAME 262
-#define SIZEOF 263
-#define PTR_OP 264
-#define INC_OP 265
-#define DEC_OP 266
-#define LEFT_OP 267
-#define RIGHT_OP 268
-#define LE_OP 269
-#define GE_OP 270
-#define EQ_OP 271
-#define NE_OP 272
-#define AND_OP 273
-#define OR_OP 274
-#define MUL_ASSIGN 275
-#define DIV_ASSIGN 276
-#define MOD_ASSIGN 277
-#define ADD_ASSIGN 278
-#define SUB_ASSIGN 279
-#define LEFT_ASSIGN 280
-#define RIGHT_ASSIGN 281
-#define AND_ASSIGN 282
-#define XOR_ASSIGN 283
-#define OR_ASSIGN 284
-#define TYPEDEF_NAME 285
-#define ENUMERATION_CONSTANT 286
-#define TYPEDEF 287
-#define EXTERN 288
-#define STATIC 289
-#define AUTO 290
-#define REGISTER 291
-#define INLINE 292
-#define CONST 293
-#define RESTRICT 294
-#define VOLATILE 295
-#define BOOL 296
-#define CHAR 297
-#define SHORT 298
-#define INT 299
-#define LONG 300
-#define SIGNED 301
-#define UNSIGNED 302
-#define FLOAT 303
-#define DOUBLE 304
-#define VOID 305
-#define COMPLEX 306
-#define IMAGINARY 307
-#define STRUCT 308
-#define UNION 309
-#define ENUM 310
-#define ELLIPSIS 311
-#define CASE 312
-#define DEFAULT 313
-#define IF 314
-#define ELSE 315
-#define SWITCH 316
-#define WHILE 317
-#define DO 318
-#define FOR 319
-#define GOTO 320
-#define CONTINUE 321
-#define BREAK 322
-#define RETURN 323
-#define ALIGNAS 324
-#define ALIGNOF 325
-#define ATOMIC 326
-#define GENERIC 327
-#define NORETURN 328
-#define STATIC_ASSERT 329
-#define THREAD_LOCAL 330
+extern "C" {
+#include "../build/immediate/y.tab.h"
+}
+
+#include <map>
+#include <string>
+#include <string_view>
+
+using namespace std::string_literals;
+
+const std::map<int, std::string_view> tokenNames = {
+	{ IDENTIFIER			, "IDENTIFIER"sv },
+	{ I_CONSTANT			, "I_CONSTANT"sv },
+	{ F_CONSTANT			, "F_CONSTANT"sv },
+	{ STRING_LITERAL		, "STRING_LITERAL"sv },
+	{ FUNC_NAME				, "FUNC_NAME"sv },
+	{ SIZEOF				, "SIZEOF"sv },
+	{ PTR_OP				, "PTR_OP"sv },
+	{ INC_OP				, "INC_OP"sv },
+	{ DEC_OP				, "DEC_OP"sv },
+	{ LEFT_OP				, "LEFT_OP"sv },
+	{ RIGHT_OP				, "RIGHT_OP"sv },
+	{ LE_OP					, "LE_OP"sv },
+	{ GE_OP					, "GE_OP"sv },
+	{ EQ_OP					, "EQ_OP"sv },
+	{ NE_OP					, "NE_OP"sv },
+	{ AND_OP				, "AND_OP"sv },
+	{ OR_OP					, "OR_OP"sv },
+	{ MUL_ASSIGN			, "MUL_ASSIGN"sv },
+	{ DIV_ASSIGN			, "DIV_ASSIGN"sv },
+	{ MOD_ASSIGN			, "MOD_ASSIGN"sv },
+	{ ADD_ASSIGN			, "ADD_ASSIGN"sv },
+	{ SUB_ASSIGN			, "SUB_ASSIGN"sv },
+	{ LEFT_ASSIGN			, "LEFT_ASSIGN"sv },
+	{ RIGHT_ASSIGN			, "RIGHT_ASSIGN"sv },
+	{ AND_ASSIGN			, "AND_ASSIGN"sv },
+	{ XOR_ASSIGN			, "XOR_ASSIGN"sv },
+	{ OR_ASSIGN				, "OR_ASSIGN"sv },
+	{ TYPEDEF_NAME			, "TYPEDEF_NAME"sv },
+	{ ENUMERATION_CONSTANT	, "ENUMERATION_CONSTANT"sv },
+	{ TYPEDEF				, "TYPEDEF"sv },
+	{ EXTERN				, "EXTERN"sv },
+	{ STATIC				, "STATIC"sv },
+	{ AUTO					, "AUTO"sv },
+	{ REGISTER				, "REGISTER"sv },
+	{ INLINE				, "INLINE"sv },
+	{ CONST					, "CONST"sv },
+	{ RESTRICT				, "RESTRICT"sv },
+	{ VOLATILE				, "VOLATILE"sv },
+	{ BOOL					, "BOOL"sv },
+	{ CHAR					, "CHAR"sv },
+	{ SHORT					, "SHORT"sv },
+	{ INT					, "INT"sv },
+	{ LONG					, "LONG"sv },
+	{ SIGNED				, "SIGNED"sv },
+	{ UNSIGNED				, "UNSIGNED"sv },
+	{ FLOAT					, "FLOAT"sv },
+	{ DOUBLE				, "DOUBLE"sv },
+	{ VOID					, "VOID"sv },
+	{ COMPLEX				, "COMPLEX"sv },
+	{ IMAGINARY				, "IMAGINARY"sv },
+	{ STRUCT				, "STRUCT"sv },
+	{ UNION					, "UNION"sv },
+	{ ENUM					, "ENUM"sv },
+	{ ELLIPSIS				, "ELLIPSIS"sv },
+	{ CASE					, "CASE"sv },
+	{ DEFAULT				, "DEFAULT"sv },
+	{ IF					, "IF"sv },
+	{ ELSE					, "ELSE"sv },
+	{ SWITCH				, "SWITCH"sv },
+	{ WHILE					, "WHILE"sv },
+	{ DO					, "DO"sv },
+	{ FOR					, "FOR"sv },
+	{ GOTO					, "GOTO"sv },
+	{ CONTINUE				, "CONTINUE"sv },
+	{ BREAK					, "BREAK"sv },
+	{ RETURN				, "RETURN"sv },
+	{ ALIGNAS				, "ALIGNAS"sv },
+	{ ALIGNOF				, "ALIGNOF"sv },
+	{ ATOMIC				, "ATOMIC"sv },
+	{ GENERIC				, "GENERIC"sv },
+	{ NORETURN				, "NORETURN"sv },
+	{ STATIC_ASSERT			, "STATIC_ASSERT"sv },
+	{ THREAD_LOCAL			, "THREAD_LOCAL"sv },
+};

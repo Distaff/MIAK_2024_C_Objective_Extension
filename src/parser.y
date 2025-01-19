@@ -1,4 +1,29 @@
-%token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
+%{
+#define YYERROR_VERBOSE 1
+#define YYDEBUG 1
+
+#include <stdio.h>
+
+int yylex(void);
+void yyerror(const char *s);
+extern int yylineno;
+
+extern void setSpecialState(int token);
+extern void defineMethod(const char *methodName);
+extern void defineClass(const char *className);
+extern void declareObject(const char *className, const char *objectName);
+extern void executeMethod(const char *objectName, const char *methodName);
+extern void createTypeSpecifier(const char *typeName);
+%}
+
+%locations
+%union {
+    char sval[32];
+    int ival;
+}
+
+%token <sval> IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL 
+%token  FUNC_NAME SIZEOF
 %token	PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token	AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token	SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
@@ -13,17 +38,22 @@
 
 %token	CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 
-%token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
+%token	ALIGNOF THREAD_LOCAL
+
+
+%token CLASSDEF CLASSDEF_DATA CLASSDEF_MDEF
+%token CLDECL CLEXEC CLACCESS CLTYPE
 
 %start translation_unit
+
 %%
 
 primary_expression
-	: IDENTIFIER
+	: ext_class_access_expression
+	| IDENTIFIER
 	| constant
 	| string
 	| '(' expression ')'
-	| generic_selection
 	;
 
 constant
@@ -32,27 +62,13 @@ constant
 	| ENUMERATION_CONSTANT	/* after it has been defined as such */
 	;
 
-enumeration_constant		/* before it has been defined as such */
+enumeration_constant_new		/* before it has been defined as such */
 	: IDENTIFIER
 	;
 
 string
 	: STRING_LITERAL
 	| FUNC_NAME
-	;
-
-generic_selection
-	: GENERIC '(' assignment_expression ',' generic_assoc_list ')'
-	;
-
-generic_assoc_list
-	: generic_association
-	| generic_assoc_list ',' generic_association
-	;
-
-generic_association
-	: type_name ':' assignment_expression
-	| DEFAULT ':' assignment_expression
 	;
 
 postfix_expression
@@ -74,7 +90,8 @@ argument_expression_list
 	;
 
 unary_expression
-	: postfix_expression
+	: ext_class_method_execution_expression
+	| postfix_expression
 	| INC_OP unary_expression
 	| DEC_OP unary_expression
 	| unary_operator cast_expression
@@ -189,9 +206,9 @@ constant_expression
 	;
 
 declaration
-	: declaration_specifiers ';'
+	: ext_class_object_declaration ';'
+	| declaration_specifiers ';'
 	| declaration_specifiers init_declarator_list ';'
-	| static_assert_declaration
 	;
 
 declaration_specifiers
@@ -199,12 +216,12 @@ declaration_specifiers
 	| storage_class_specifier
 	| type_specifier declaration_specifiers
 	| type_specifier
+	| ext_class_type_specifier declaration_specifiers
+	| ext_class_type_specifier
 	| type_qualifier declaration_specifiers
 	| type_qualifier
 	| function_specifier declaration_specifiers
 	| function_specifier
-	| alignment_specifier declaration_specifiers
-	| alignment_specifier
 	;
 
 init_declarator_list
@@ -239,7 +256,6 @@ type_specifier
 	| BOOL
 	| COMPLEX
 	| IMAGINARY	  	/* non-mandated extension */
-	| atomic_type_specifier
 	| struct_or_union_specifier
 	| enum_specifier
 	| TYPEDEF_NAME		/* after it has been defined as such */
@@ -264,7 +280,6 @@ struct_declaration_list
 struct_declaration
 	: specifier_qualifier_list ';'	/* for anonymous struct/union */
 	| specifier_qualifier_list struct_declarator_list ';'
-	| static_assert_declaration
 	;
 
 specifier_qualifier_list
@@ -299,29 +314,17 @@ enumerator_list
 	;
 
 enumerator	/* identifiers must be flagged as ENUMERATION_CONSTANT */
-	: enumeration_constant '=' constant_expression
-	| enumeration_constant
-	;
-
-atomic_type_specifier
-	: ATOMIC '(' type_name ')'
-	;
+	: enumeration_constant_new '=' constant_expression
+	| enumeration_constant_new
 
 type_qualifier
 	: CONST
 	| RESTRICT
 	| VOLATILE
-	| ATOMIC
 	;
 
 function_specifier
 	: INLINE
-	| NORETURN
-	;
-
-alignment_specifier
-	: ALIGNAS '(' type_name ')'
-	| ALIGNAS '(' constant_expression ')'
 	;
 
 declarator
@@ -442,10 +445,6 @@ designator
 	| '.' IDENTIFIER
 	;
 
-static_assert_declaration
-	: STATIC_ASSERT '(' constant_expression ',' STRING_LITERAL ')' ';'
-	;
-
 statement
 	: labeled_statement
 	| compound_statement
@@ -510,7 +509,8 @@ translation_unit
 	;
 
 external_declaration
-	: function_definition
+	: ext_class_definition
+	| function_definition
 	| declaration
 	;
 
@@ -524,12 +524,57 @@ declaration_list
 	| declaration_list declaration
 	;
 
+/* 		extensions 		*/
+
+ext_method_definition
+	: CLASSDEF_MDEF declaration_specifiers IDENTIFIER '(' parameter_type_list ')' compound_statement 	{ defineMethod($3); setSpecialState(CLASSDEF); };
+	| CLASSDEF_MDEF declaration_specifiers IDENTIFIER '(' ')' compound_statement 						{ defineMethod($3); setSpecialState(CLASSDEF); };
+	;
+
+ext_method_definition_list
+	: ext_method_definition
+	| ext_method_definition_list ext_method_definition
+	;
+
+ext_class_data
+	: CLASSDEF_DATA '{' struct_declaration_list '}' { setSpecialState(CLASSDEF); }
+	;
+
+ext_class_definition
+	: CLASSDEF IDENTIFIER '{' ext_class_data ext_method_definition_list '}' { defineClass($2); setSpecialState(0); };
+	| CLASSDEF IDENTIFIER '{' ext_class_data '}' 							{ defineClass($2); setSpecialState(0); };
+	;
+
+ext_class_object_declaration
+	: CLDECL IDENTIFIER IDENTIFIER { declareObject($2, $3); setSpecialState(0); };
+	;
+
+ext_class_method_execution_expression
+	: CLEXEC IDENTIFIER '.' IDENTIFIER '(' argument_expression_list ')'	{ executeMethod($2, $4); setSpecialState(0); }
+	| CLEXEC IDENTIFIER '.' IDENTIFIER '(' ')'							{ executeMethod($2, $4); setSpecialState(0); }			
+	;
+
+ext_class_access_expression
+	: CLACCESS IDENTIFIER '.' IDENTIFIER
+	;
+
+ext_class_type_specifier
+	: CLTYPE pointer IDENTIFIER  	{ createTypeSpecifier($3); setSpecialState(0); }
+	| CLTYPE IDENTIFIER 			{ createTypeSpecifier($2); setSpecialState(0); }
+	;
+
+
+
 %%
 #include <stdio.h>
-
 
 void yyerror(const char *s)
 {
 	fflush(stdout);
-	fprintf(stderr, "*** %s\n", s);
+	fprintf(stderr, "line %d: Parser/Lexer error: \n\t%s\n", yylineno, s);
+	fflush(stderr);
+}
+
+const char* getTokenName(int t) {
+    return yysymbol_name(YYTRANSLATE(t));
 }

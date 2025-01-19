@@ -1,0 +1,143 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+@classdef RingBuffer { 
+	@data {
+		char* data;
+		unsigned int size;
+		char* readerPtr;
+		char* writerPtr;
+	}  
+	
+	@mdef void init(unsigned int size) {
+		this->data = malloc(this->size);
+		memset(this->data, 0, this->size);
+		this->size = size;
+		this->readerPtr = this->data;
+		this->writerPtr = this->data;
+	}
+
+	@mdef void destroy() {
+		free(this->data);
+	}
+	
+	@mdef unsigned int bytesToRead() {
+		if (this->writerPtr >= this->readerPtr) {
+			return this->writerPtr - this->readerPtr;
+		} else {
+			return this->size - (this->readerPtr - this->writerPtr);
+		}
+	}
+
+	@mdef unsigned int bytesToWrite() {
+		if (this->writerPtr >= this->readerPtr) {
+			return this->size - (this->writerPtr - this->readerPtr);
+		} else {
+			return this->readerPtr - this->writerPtr;
+		}
+	}
+
+	@mdef void pushByte(char byte) {
+		*(this->writerPtr) = byte;
+		this->writerPtr++;
+		if (this->writerPtr == this->data + this->size) {
+			this->writerPtr = this->data;
+		}
+	}
+
+	@mdef char popByte() {
+		char byte = *(this->readerPtr);
+		this->readerPtr++;
+		if (this->readerPtr == this->data + this->size) {
+			this->readerPtr = this->data;
+		}
+		return byte;
+	}
+
+	@mdef char peekByte() {
+		return *(this->readerPtr);
+	}
+
+	@mdef void clear() {
+		this->readerPtr = this->writerPtr;
+	}
+}
+
+void dumpRingBufferData(@cltype RingBuffer* ringBuffer) {	// type specifier in standard function
+	printf("Internal Data: [");
+	for (int i = 0; i < ringBuffer->size; i++) {
+		ringBuffer->data[i] == 0 ? printf("NIL") : printf("'%c'", ringBuffer->data[i]);
+		if (i < ringBuffer->size - 1) printf(", ");
+	}
+	printf("]\n                ");
+
+	for (int i = 0; i < ringBuffer->size; i++) {
+		_Bool readerHere = ringBuffer->data + i == ringBuffer->readerPtr;
+		_Bool writerHere = ringBuffer->data + i == ringBuffer->writerPtr;
+		if(readerHere && writerHere) {
+			printf(" ^RW ");
+		} else if(readerHere) {
+			printf(" ^R  ");
+		} else if(writerHere) {
+			printf(" ^W  ");
+		} else {
+			printf("     ");
+		}
+	}
+	printf("\n");
+}
+
+int main() { 
+	@cldecl RingBuffer myRingBuffer;
+	@clexec myRingBuffer.init(10);
+	
+	printf("init() performed.\n");
+	printf("Bytes to read: %d, bytes to write: %d\n", @clexec myRingBuffer.bytesToRead(), @clexec myRingBuffer.bytesToWrite());
+
+	dumpRingBufferData(&myRingBuffer);	// passing to standard function
+	printf("\n");
+	
+	@clexec myRingBuffer.pushByte('a');
+	@clexec myRingBuffer.pushByte('b');
+	@clexec myRingBuffer.pushByte('c');
+	@clexec myRingBuffer.pushByte('d');
+	@clexec myRingBuffer.pushByte('e');
+	@clexec myRingBuffer.pushByte('f');
+	@clexec myRingBuffer.pushByte('g');
+
+	printf("\n");
+	printf("Pushed chars a,b,c,d,e,f,g.\n");
+	printf("Bytes to read: %d, bytes to write: %d\n", @clexec myRingBuffer.bytesToRead(), @clexec myRingBuffer.bytesToWrite());
+	dumpRingBufferData(&myRingBuffer);
+	printf("\n");
+	printf("Reading all chars using popByte():\n");
+	
+	while (@clexec myRingBuffer.bytesToRead() > 0) {
+		printf("Byte: %c\n", @clexec myRingBuffer.popByte());
+	}
+
+	printf("\n");
+	
+	@clexec myRingBuffer.pushByte('1');
+	@clexec myRingBuffer.pushByte('2');
+	@clexec myRingBuffer.pushByte('3');
+	@clexec myRingBuffer.pushByte('4');
+	@clexec myRingBuffer.pushByte('5');
+	
+	printf("Pushed chars 1,2,3,4,5.\n");
+	printf("Bytes to read: %d, bytes to write: %d\n", @clexec myRingBuffer.bytesToRead(), @clexec myRingBuffer.bytesToWrite());
+	dumpRingBufferData(&myRingBuffer);
+	printf("\n");
+
+	printf("Reading 3 chars using popByte():\n");
+
+	for (int i = 0; i < 3; i++) {
+		printf("Byte: %c\n", @clexec myRingBuffer.popByte());
+	}
+
+	dumpRingBufferData(&myRingBuffer);
+	printf("\n");
+
+	@clexec myRingBuffer.destroy();
+}
