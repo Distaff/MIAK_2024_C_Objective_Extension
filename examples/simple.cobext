@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+@classdef CharCounter { 
+	@data {
+		char * countable;
+		int totalCounter;
+		int currentCounter;
+	}
+
+	@mdef void init(char * countable) {
+		this->countable = countable;
+		this->currentCounter = 0;
+		this->totalCounter = 0;
+	}
+
+	@mdef void count(char *str) {
+		this->currentCounter = 0;
+		while (*str) {
+			char* c = this->countable;
+			while (*c) {
+				if (*str == *c) {
+					this->totalCounter++;
+					this->currentCounter++;
+				}
+				c++;
+			}
+			str++;
+		}
+	}
+}
+
+int main() { 
+	@cldecl CharCounter ctr;
+	@clexec ctr.init(" \t\n\v\f\r");
+
+	printf("Counting blank characters in 'This is a test string.'.\n");
+
+	@clexec ctr.count("This is a test string.");
+
+	printf("Number of blank characters in last string: %d\n", @claccess ctr.currentCounter);
+	printf("Number of blank characters overall: %d\n", @claccess ctr.totalCounter);
+
+	printf("\nCounting blank characters in 'The quick brown fox jumps over the lazy dog.'.\n");
+
+	@clexec ctr.count("The quick brown fox jumps over the lazy dog.");
+
+	printf("Number of blank characters in last string: %d\n", @claccess ctr.currentCounter);
+	printf("Number of blank characters overall: %d\n", @claccess ctr.totalCounter);
+
+	printf("\nCounting blank characters in 'Lorem ipsum\t\t\tdolor sit amet, \nconsectetur adipiscing elit'.\n");
+
+	@clexec ctr.count("Lorem ipsum\t\t\tdolor sit amet, \nconsectetur adipiscing elit.");
+
+	printf("Number of blank characters in last string: %d\n", @claccess ctr.currentCounter);
+	printf("Number of blank characters overall: %d\n", @claccess ctr.totalCounter);
+}

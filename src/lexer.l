@@ -24,6 +24,7 @@ WS  [ \t\n\r\f\v]
 int yylex(void);
 extern char *yytext;
 extern void yyerror(const char *s);
+extern void warn(const char *s);
 extern int sym_type(const char *);
 
 static void comment(void);
@@ -38,7 +39,7 @@ extern void setSpecialState(int token);
 %%
 "/*"                    { comment(); }
 "//".*                  { /* consume //-comment */ }
-"#"(.*)                 { reprintToken(yytext, 0); /* pass #-line */ }
+"#"(.*)                 { warn("Preprocesor directives are ignored."); reprintToken(yytext, 0); /* pass #-line */ }
 
 "auto"					{ reprintToken("auto", AUTO); return(AUTO); }
 "break"					{ reprintToken("break", BREAK); return(BREAK); }

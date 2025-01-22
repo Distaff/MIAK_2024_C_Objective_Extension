@@ -555,7 +555,7 @@ ext_class_method_execution_expression
 	;
 
 ext_class_access_expression
-	: CLACCESS IDENTIFIER '.' IDENTIFIER
+	: CLACCESS IDENTIFIER '.' IDENTIFIER { setSpecialState(0); }
 	;
 
 ext_class_type_specifier
@@ -572,6 +572,13 @@ void yyerror(const char *s)
 {
 	fflush(stdout);
 	fprintf(stderr, "line %d: Parser/Lexer error: \n\t%s\n", yylineno, s);
+	fflush(stderr);
+}
+
+void warn(const char *s)
+{
+	fflush(stdout);
+	fprintf(stderr, "line %d: Parser/Lexer warning: \n\t%s\n", yylineno, s);
 	fflush(stderr);
 }
 

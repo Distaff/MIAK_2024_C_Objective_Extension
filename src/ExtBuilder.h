@@ -1,5 +1,6 @@
 extern "C" {
 #include "../build/immediate/y.tab.h"
+extern int yylineno;
 }
 
 extern "C" const char* getTokenName(int token);
@@ -57,12 +58,17 @@ private:
 
     std::ostream* out_;
     std::ostream* errout_;
+    bool hasError = false;
 
     inline std::string mangleClassName(const std::string& className) {
         return std::format("__CLASSDEF_{}", className);
     }
     inline std::string mangleMethodName(const std::string& className, const std::string& methodName) {
         return std::format("__METDEF_{}_{}", className, methodName);
+    }
+    inline void emitError(const std::string& msg) {
+        hasError = true;
+        *errout_ << std::format("line {}: Object Builder error: \n\t{}\n", yylineno, msg);
     }
 
 public:
@@ -72,6 +78,10 @@ public:
     ExtBuilder(const ExtBuilder& other)             = default;
     ExtBuilder(ExtBuilder&& other)                  = default;
     ~ExtBuilder()                                   = default;
+
+    bool hasErrors() {
+        return hasError;
+    }
 
     void dumpTokens() {
         for(auto token : tokens_) {
@@ -131,7 +141,7 @@ public:
                 specialState = STATE_NONE;
                 break;
             default:
-                throw std::runtime_error("Invalid special state!");
+                std::runtime_error("Invalid special state!");
         }
         specialStateBuffer_.clear();
     };
@@ -140,10 +150,14 @@ public:
         trim(methodName);
         trim(specialStateBuffer_);
 
-        if(currentClassDef.methodDefinitions.find(methodName) != currentClassDef.methodDefinitions.end())
-            throw std::runtime_error("Method already defined!");
-        if(specialStateBuffer_.empty())
-            throw std::runtime_error("Method definition is empty!");
+        if(currentClassDef.methodDefinitions.find(methodName) != currentClassDef.methodDefinitions.end()) {
+            emitError(std::format("Method '{}' already defined!", methodName));
+            return;
+        }
+        if(specialStateBuffer_.empty()) {
+            emitError(std::format("Method '{}' definition is empty!", methodName));
+            return;
+        }
 
         currentClassDef.methodDefinitions[methodName] = specialStateBuffer_;
     }
@@ -151,10 +165,14 @@ public:
     void defineClass(std::string className) {
         trim(className);
 
-        if(classDefs_.find(className) != classDefs_.end())
-            throw std::runtime_error(std::format("Class {} already defined!", className));
-        if(currentClassDef.dataDefition.empty() && currentClassDef.methodDefinitions.empty())
-            throw std::runtime_error(std::format("Class {} definition empty!", className));
+        if(classDefs_.find(className) != classDefs_.end()) {
+            emitError(std::format("Class '{}' already defined!", className));
+            return;
+        }
+        if(currentClassDef.dataDefition.empty() && currentClassDef.methodDefinitions.empty()) {
+            emitError(std::format("Class '{}' definition empty!", className));
+            return;
+        }
         
         classDefs_[className] = currentClassDef;
         *out_ << std::format("typedef struct {} {} {};\n\n", mangleClassName(className), currentClassDef.dataDefition, mangleClassName(className));
@@ -181,8 +199,10 @@ public:
         trim(className);
         trim(objectName);
 
-        if(classDefs_.find(className) == classDefs_.end())
-            throw std::runtime_error(std::format("Class {} not defined!", className));
+        if(!classDefs_.contains(className)) {
+            emitError(std::format("Class '{}' not defined!", className));
+            return;
+        }
 
         objDefs_[objectName] = className;
         *out_ << std::format("{} {}", mangleClassName(className), objectName);
@@ -192,7 +212,18 @@ public:
         trim(objectName);
         trim(specialStateBuffer_);
 
+        if(!objDefs_.contains(objectName)){
+            emitError(std::format("Object '{}' not declared!", objectName));
+            return;
+        }
+
         std::string className = objDefs_[objectName];
+
+        if(!classDefs_[className].methodDefinitions.contains(methodName)) {
+            emitError(std::format("Method '{}' not defined for class '{}'!", methodName, className));
+            return;
+        }
+
         std::string argList = specialStateBuffer_;
         std::string declarator = std::format("{}.{}" , objectName, methodName);
 
@@ -213,6 +244,11 @@ public:
     void createTypeSpecifier(std::string className) {
         trim(className);
         trim(specialStateBuffer_);
+
+        if(!classDefs_.contains(className)) {
+            emitError(std::format("Class '{}' not defined!", className));
+            return;
+        }
 
         specialStateBuffer_.replace(specialStateBuffer_.find(className), className.size(), mangleClassName(className));
 

@@ -28,16 +28,16 @@ extern "C" {
     void defineClass(const char *className)         { defineClassPlain(className); }
     void declareObject(const char *className, const char *objectName)   { declareObjectPlain(className, objectName); }
     void executeMethod(const char *objectName, const char *methodName)  { executeMethodPlain(objectName, methodName); }
-    void createTypeSpecifier(const char *className)  { createTypeSpecifierPlain(className); }
+    void createTypeSpecifier(const char *className) { createTypeSpecifierPlain(className); }
 }
 
 int main(int argc, char **argv)
 {
-    std::cout << "C Objective Extensions Precompiler v0.1\n";
+    std::cout << "C Objective Extensions StS Compiler v0.1\n";
 
-    if(argc < 3 || argc > 4) {
-        std::cout << "Usage: cobext [input file] [output file] <-d>\n" \
-            "  -d: Enable debug mode (optional)\n";
+    if(argc < 2 || argc > 4) {
+        std::cout << "Usage: cobext [input file] <output file> <-v>\n" \
+            "  -v: Enable verbose mode (optional)\n";
         return 1;
     }
     if(std::string(argv[1]) == std::string(argv[2])) {
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
         std::cerr << "Failed to open output file!\n";
         return 1;
     }
-    if(argc == 4 && std::string(argv[3]) == "-d") {
+    if(argc == 4 && std::string(argv[3]) == "-v") {
         yydebug = 1;
     }
 
@@ -62,20 +62,29 @@ int main(int argc, char **argv)
 
     std::cout << "Processing input...\n";
 
-    auto parseError = yyparse();
-    if(parseError) {
-        if(yydebug) {
-            std::cerr << "Parsing unsuccessful. Tokens dump:\n\n";
-            extBuilder.dumpTokens();
+    try {
+        auto parseError = yyparse();
+        if(parseError || extBuilder.hasErrors()) {
+            if(yydebug) {
+                std::cerr << "Compilation failed. Tokens dump:\n\n";
+                extBuilder.dumpTokens();
 
-            std::cerr << "\n\nExiting.\n";
-        }
-        else {
-            std::cerr << "\nParsing unsuccessful. Exiting.\n";
-        }
+                std::cerr << "\n\nExiting.\n";
+            }
+            else {
+                std::cerr << "\nCompilation failed. Exiting.\n";
+            }
 
+            return 1;
+        }
+    }
+    catch(const std::exception& e) {
+        std::cerr << "\nInternal error: " << e.what() << "\nExiting.\n";
+        fclose(yyin);
+        outputFile.close();
         return 1;
     }
+
 
     fclose(yyin);
     outputFile.close();

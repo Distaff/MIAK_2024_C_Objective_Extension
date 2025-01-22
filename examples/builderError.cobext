@@ -1,0 +1,48 @@
+@classdef CharCounter { 
+	@data {
+		char * countable;
+		int totalCounter;
+		int currentCounter;
+	}
+
+	@mdef void init(char * countable) {
+		this->countable = countable;
+		this->currentCounter = 0;
+		this->totalCounter = 0;
+	}
+
+	@mdef void count(char *str) {
+		this->currentCounter = 0;
+		while (*str) {
+			char* c = this->countable;
+			while (*c) {
+				if (*str == *c) {
+					this->totalCounter++;
+					this->currentCounter++;
+				}
+				c++;
+			}
+			str++;
+		}
+	}
+}
+
+@classdef CharCounter { 
+	@data {
+		char * countable;
+		int totalCounter;
+		int currentCounter;
+	}
+}
+
+int main() {
+	@cldecl CharCounter ctr;
+	@clexec ctr.init(" \t\n\v\f\r");
+
+	printf("Counting blank characters in 'This is a test string.'.\n");
+
+	@clexec ctr.count("This is a test string.");
+	@clexec counter.count("This is a test string.");
+
+	@clexec ctr.destroy();
+}
