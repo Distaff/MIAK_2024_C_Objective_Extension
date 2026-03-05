@@ -1,4 +1,7 @@
 # C Objective Extenstions (cobext)
+
+## Note - this project was created as part of a university course on compilers. Below is a README that served as a minimal documentation for the project.
+
 ## Project Assumptions
 
 ### General Program Goals
